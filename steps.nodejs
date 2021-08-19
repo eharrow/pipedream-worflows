@@ -1,0 +1,52 @@
+async(event, steps){
+  const ukareacodes = require('uk-areacodes');
+  const get = require("lodash.get");
+  const includes = require("lodash.includes");
+  const l = new ukareacodes.UKAreaCodeLookup();
+
+  //console.log(event.body);
+  function toKeyValuePair(data, val) {
+    // split val on =
+    const arr = val.split('=');
+    //console.log(arr);
+    // add to object
+    data[arr[0]] = arr[1];
+    return data;
+  }
+  // parse body into fields
+  const data = event.body.split('&').reduce(toKeyValuePair,{});
+
+  // UK numbers with 0 prefix
+  const reUK = /^(44)([0-9]*)$/;
+  const fromUKMatch = data.from.match(reUK);
+  const reTo = `^${process.env.YOUR_NUMBER}$`;
+  const toMatch = data.to.match(new RegExp(reTo));
+
+  // Retrieve number stored in $checkpoint
+  const numbers = get($checkpoint, "numbers", []);
+  if (includes(numbers, data.from)) {
+    data['calledBefore'] = true;
+  }
+  numbers.push(data.from);
+  $checkpoint = {
+    numbers,
+  };
+
+  if (fromUKMatch) {
+    data.from = `0${fromUKMatch[2]}`;
+    const town = l.startsWith(data.from);
+    //console.log(town);
+
+    if (town) {
+      data.from = `${town} ${data.from}`;
+    }
+  } else {
+    data.from = `Intl. ${data.from}`;
+  }
+
+  if (toMatch) {
+    data.to = process.env.YOUR_TOWN;
+  }
+
+  return data;
+}
