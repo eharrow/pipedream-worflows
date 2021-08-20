@@ -26,11 +26,12 @@ async(event, steps){
   const numbers = get($checkpoint, "numbers", []);
   if (includes(numbers, data.from)) {
     data['calledBefore'] = true;
+  } else {
+    numbers.push(data.from);
+    $checkpoint = {
+      numbers,
+    };
   }
-  numbers.push(data.from);
-  $checkpoint = {
-    numbers,
-  };
 
   if (fromUKMatch) {
     data.from = `0${fromUKMatch[2]}`;
